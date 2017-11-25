@@ -25,6 +25,8 @@ Sub main()
         Dim OfficeFilePaths,objshell
         OfficeFilePaths = WScript.Arguments(0)
         StopPptApp
+        StopWordApp
+        StopXlsApp
         Set objshell = CreateObject("scripting.filesystemobject")
         If objshell.FolderExists(OfficeFilePaths) Then
             Dim flag,FileNumber
@@ -39,8 +41,11 @@ Sub main()
                 If GetPptFile(OfficeFilePath) Then
                     ConvertPptToPDF OfficeFilePath
                     flag=flag+1
-                Elseif GetWordFile(OfficeFilePath) The
+                Elseif GetWordFile(OfficeFilePath) Then
                     ConvertWordToPDF OfficeFilePath
+                    flag=flag+1
+                Elseif GetXlsFile(OfficeFilePath) Then
+                    ConvertXlsToPDF OfficeFilePath
                     flag=flag+1
                 End If
             Next
@@ -54,9 +59,13 @@ Sub main()
             Elseif GetPptFile(OfficeFilePaths) Then
                 OfficeFilePath = OfficeFilePaths
                 ConvertPptToPDF OfficeFilePath
+            Elseif GetXlsFile(OfficeFilePaths) Then
+                OfficeFilePath = OfficeFilePaths
+                ConvertXlsToPDF OfficeFilePath
             Else
                 WScript.Echo "Please drag a document or a folder with office documents."
             End If
+            WScript.Echo "Done."
         End If
 
     Case  Else
@@ -89,6 +98,21 @@ Function ConvertPptToPDF(PptPath)
     doc.saveas PDFPath,32
     doc.close
     ppapp.quit
+    Set objshell = Nothing
+End Function
+
+Function ConvertXlsToPDF(XlsPath)
+    Dim objshell,ParentFolder,BaseName,xlsapp,doc,PDFPath
+    Set objshell= CreateObject("scripting.filesystemobject")
+    ParentFolder = objshell.GetParentFolderName(XlsPath)
+    BaseName = objshell.GetBaseName(XlsPath)
+    PDFPath = parentFolder & "\" & BaseName & ".pdf"
+    Set xlsapp = CreateObject("Excel.application")
+    Set doc = xlsapp.Workbooks.Open(XlsPath)
+    doc.ExportAsFixedFormat 0, PDFPath
+    doc.saved = True
+    doc.close
+    xlsapp.quit
     Set objshell = Nothing
 End Function
 
@@ -128,6 +152,24 @@ Function GetPptFile(PptPath)
     Set objshell = Nothing
 End Function
 
+Function GetXlsFile(XlsPath)
+    Dim objshell
+    Set objshell= CreateObject("scripting.filesystemobject")
+    Dim Arrs ,Arr
+    Arrs = Array("xls","xlsx")
+    Dim blnIsPxlsFile,FileExtension
+    blnIsPxlsFile= False
+    FileExtension = objshell.GetExtensionName(XlsPath)
+    For Each Arr In Arrs
+        If InStr(UCase(FileExtension),UCase(Arr)) <> 0 Then
+            blnIsPxlsFile= True
+            Exit For
+        End If
+    Next
+    GetXlsFile = blnIsPxlsFile
+    Set objshell = Nothing
+End Function
+
 Function StopWordApp
     Dim strComputer,objWMIService,colProcessList,objProcess
     strComputer = "."
@@ -147,6 +189,18 @@ Function StopPptApp
     & "{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
     Set colProcessList = objWMIService.ExecQuery _
     ("SELECT * FROM Win32_Process WHERE Name = 'PowerPnt.exe'")
+    For Each objProcess in colProcessList
+        objProcess.Terminate()
+    Next
+End Function
+
+Function StopXlsApp
+    Dim strComputer,objWMIService,colProcessList,objProcess
+    strComputer = "."
+    Set objWMIService = GetObject("winmgmts:" _
+    & "{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
+    Set colProcessList = objWMIService.ExecQuery _
+    ("SELECT * FROM Win32_Process WHERE Name = 'Excel.exe'")
     For Each objProcess in colProcessList
         objProcess.Terminate()
     Next
