@@ -29,10 +29,9 @@ Sub main()
         StopXlsApp
         Set objshell = CreateObject("scripting.filesystemobject")
         If objshell.FolderExists(OfficeFilePaths) Then
-            Dim flag,FileNumber
+            Dim flag, FileNumber, OfficeFilePath, Folder, OfficeFiles, OfficeFile
             flag = 0
             FileNumber = 0
-            Dim Folder,OfficeFiles,OfficeFile
             Set Folder = objshell.GetFolder(OfficeFilePaths)
             Set OfficeFiles = Folder.Files
             For Each OfficeFile In OfficeFiles
@@ -52,16 +51,12 @@ Sub main()
             WScript.Echo "Total " & FileNumber & " file(s) in the folder and convert " & flag & " Documents to PDF fles."
 
         Else
-            Dim OfficeFilePath
-            If GetPptFile(OfficeFilePath) Then
-                OfficeFilePath = OfficeFilePaths
-                ConvertWordToPDF OfficeFilePath
-            Elseif GetPptFile(OfficeFilePaths) Then
-                OfficeFilePath = OfficeFilePaths
-                ConvertPptToPDF OfficeFilePath
+            If GetPptFile(OfficeFilePaths) Then
+                ConvertWordToPDF OfficeFilePaths
+            Elseif GetWordFile(OfficeFilePaths) Then
+                ConvertPptToPDF OfficeFilePaths
             Elseif GetXlsFile(OfficeFilePaths) Then
-                OfficeFilePath = OfficeFilePaths
-                ConvertXlsToPDF OfficeFilePath
+                ConvertXlsToPDF OfficeFilePaths
             Else
                 WScript.Echo "Please drag a document or a folder with office documents."
             End If
