@@ -52,9 +52,9 @@ Sub main()
 
         Else
             If GetPptFile(OfficeFilePaths) Then
-                ConvertWordToPDF OfficeFilePaths
-            Elseif GetWordFile(OfficeFilePaths) Then
                 ConvertPptToPDF OfficeFilePaths
+            Elseif GetWordFile(OfficeFilePaths) Then
+                ConvertWordToPDF OfficeFilePaths
             Elseif GetXlsFile(OfficeFilePaths) Then
                 ConvertXlsToPDF OfficeFilePaths
             Else
