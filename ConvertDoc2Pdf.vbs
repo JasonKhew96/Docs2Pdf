@@ -1,72 +1,67 @@
-'---------------------------------------------------------------------------------
-' The sample scripts are not supported under any Microsoft standard support
-' program or service. The sample scripts are provided AS IS without warranty
-' of any kind. Microsoft further disclaims all implied warranties including,
-' without limitation, any implied warranties of merchantability or of fitness for
-' a particular purpose. The entire risk arising out of the use or performance of
-' the sample scripts and documentation remains with you. In no event shall
-' Microsoft, its authors, or anyone else involved in the creation, production, or
-' delivery of the scripts be liable for any damages whatsoever (including,
-' without limitation, damages for loss of business profits, business interruption,
-' loss of business information, or other pecuniary loss) arising out of the use
-' of or inability to use the sample scripts or documentation, even if Microsoft
-' has been advised of the possibility of such damages.
-'---------------------------------------------------------------------------------
 Option Explicit
-'################################################
-'This script is to convert office documents to PDF files
-'################################################
+
 Sub main()
     Dim ArgCount
     ArgCount = WScript.Arguments.Count
     Select Case ArgCount
     Case 1
-        MsgBox "Please ensure documents are saved,if that press 'OK' to continue",,"Warning"
-        Dim OfficeFilePaths,objshell
-        OfficeFilePaths = WScript.Arguments(0)
-        StopPptApp
-        StopWordApp
-        StopXlsApp
-        Set objshell = CreateObject("scripting.filesystemobject")
-        If objshell.FolderExists(OfficeFilePaths) Then
-            Dim flag, FileNumber, OfficeFilePath, Folder, OfficeFiles, OfficeFile
-            flag = 0
-            FileNumber = 0
-            Set Folder = objshell.GetFolder(OfficeFilePaths)
-            Set OfficeFiles = Folder.Files
-            For Each OfficeFile In OfficeFiles
-                FileNumber=FileNumber+1
-                OfficeFilePath = OfficeFile.Path
-                If GetPptFile(OfficeFilePath) Then
-                    ConvertPptToPDF OfficeFilePath
-                    flag=flag+1
-                Elseif GetWordFile(OfficeFilePath) Then
-                    ConvertWordToPDF OfficeFilePath
-                    flag=flag+1
-                Elseif GetXlsFile(OfficeFilePath) Then
-                    ConvertXlsToPDF OfficeFilePath
-                    flag=flag+1
-                End If
-            Next
-            WScript.Echo "Total " & FileNumber & " file(s) in the folder and convert " & flag & " Documents to PDF fles."
-
-        Else
-            If GetPptFile(OfficeFilePaths) Then
-                ConvertPptToPDF OfficeFilePaths
-            Elseif GetWordFile(OfficeFilePaths) Then
-                ConvertWordToPDF OfficeFilePaths
-            Elseif GetXlsFile(OfficeFilePaths) Then
-                ConvertXlsToPDF OfficeFilePaths
-            Else
-                WScript.Echo "Please drag a document or a folder with office documents."
-            End If
-            WScript.Echo "Done."
-        End If
-
+        Convert
     Case  Else
             WScript.Echo "Please drag a document or a folder with office documents."
     End Select
 End Sub
+
+Function Convert
+    ' MsgBox "Please ensure documents are saved,if that press 'OK' to continue",,"Warning"
+    Dim OfficeFilePaths, FileNumber
+    OfficeFilePaths = WScript.Arguments(0)
+
+    StopPptApp
+    StopWordApp
+    StopXlsApp
+
+    FileNumber = ProcessFile(OfficeFilePaths)
+
+    WScript.Echo "Total " & FileNumber & " file(s) converted to PDF."
+End Function
+
+Function ProcessFile(path)
+    Dim fileNumber, objshell, folder, file, OfficeFiles, subFolders, fol
+    fileNumber = 0
+    Set objshell = CreateObject("scripting.filesystemobject")
+    If objshell.FolderExists(path) Then
+        Set folder = objshell.GetFolder(path)
+        Set OfficeFiles = folder.Files
+        For Each file In OfficeFiles
+            if ConvertOneFile(file.path) Then
+                fileNumber = fileNumber + 1
+            End If
+        Next
+        Set subFolders = folder.SubFolders
+        For Each fol In subFolders
+            fileNumber = fileNumber + ProcessFile(fol)
+        Next
+    Elseif ConvertOneFile(file) Then
+        fileNumber = fileNumber + 1
+    End If
+    ProcessFile = fileNumber
+End Function
+
+Function ConvertOneFile(path)
+    If GetPptFile(path) Then
+        ConvertPptToPDF path
+        ConvertOneFile = true
+    Elseif GetWordFile(path) Then
+        ConvertWordToPDF path
+        ConvertOneFile = true
+    Elseif GetXlsFile(path) Then
+        ConvertXlsToPDF path
+        ConvertOneFile = true
+    Else
+        ConvertOneFile = false
+    End If
+End Function
+
 
 Function ConvertWordToPDF(DocPath)
     Dim objshell,ParentFolder,BaseName,wordapp,doc,PDFPath
@@ -75,10 +70,12 @@ Function ConvertWordToPDF(DocPath)
     BaseName = objshell.GetBaseName(DocPath)
     PDFPath = parentFolder & "\" & BaseName & ".pdf"
     Set wordapp = CreateObject("Word.application")
-    Set doc = wordapp.documents.open(DocPath)
-    doc.saveas PDFPath,17
+    wordapp.WordBasic.DisableAutoMacros
+    Set doc = wordapp.Documents.Open(DocPath)
+    doc.saveas PDFPath, 17
     doc.close
     wordapp.quit
+    Set wordapp = Nothing
     Set objshell = Nothing
 End Function
 
